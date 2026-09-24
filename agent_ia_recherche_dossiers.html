@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Agent IA — Recherche des dossiers</title>
+<style>
+:root{--bg:#f8f6f1;--card:#fff;--text:#27231f;--muted:#70685f;--line:#e4ded5;--accent:#2f9e8f}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font-family:Inter,Arial,sans-serif}
+.wrap{max-width:820px;margin:auto;padding:0 24px}
+.hero{text-align:center;padding:62px 20px 32px}
+.badge{display:inline-block;padding:6px 11px;border-radius:99px;background:#e8f5f2;color:#277d71;font-size:13px;font-weight:700}
+h1{font-size:40px;line-height:1.1;margin:16px 0 12px}
+.hero p{color:var(--muted);font-size:17px;margin:0 auto;max-width:650px}
+.search{margin:20px auto 12px;display:flex;gap:10px}
+input{flex:1;padding:16px 18px;border:1px solid var(--line);border-radius:13px;font-size:16px;background:#fff;outline:none}
+input:focus{border-color:var(--accent);box-shadow:0 0 0 3px #2f9e8f22}
+button{border:0;border-radius:13px;padding:0 22px;background:var(--accent);color:white;font-weight:700;font-size:15px;cursor:pointer}
+.examples{text-align:center;color:var(--muted);font-size:13px}
+.results{padding:28px 0 60px}
+.status{color:var(--muted);margin-bottom:14px}
+.result{background:var(--card);border:1px solid var(--line);border-radius:15px;padding:18px 20px;margin:12px 0;display:flex;align-items:center;justify-content:space-between;gap:18px}
+.result h3{margin:0 0 5px;font-size:17px}.result p{margin:0;color:var(--muted);font-size:14px}
+.open{white-space:nowrap;color:var(--accent);font-weight:700;text-decoration:none}
+.empty{text-align:center;color:var(--muted);padding:35px 10px}
+footer{text-align:center;color:var(--muted);font-size:12px;padding:0 0 35px}
+@media(max-width:620px){.search{flex-direction:column}button{height:50px}.result{align-items:flex-start;flex-direction:column}.open{margin-top:4px}}
+</style>
+</head>
+<body>
+<header class="hero">
+  <div class="badge">✦ Agent IA de recherche documentaire</div>
+  <h1>Où trouver mes dossiers ?</h1>
+  <p>Décris simplement ce que tu cherches. L’agent identifie les dossiers correspondants et te donne un accès direct au Drive.</p>
+  <div class="wrap">
+    <div class="search">
+      <input id="q" placeholder="Ex. « Je cherche les documents sur Bangkok »" autocomplete="off">
+      <button onclick="search()">Rechercher</button>
+    </div>
+    <div class="examples">Exemples : Bangkok · communication · Alia · partenaires · comptes rendus · passation</div>
+  </div>
+</header>
+
+<main class="wrap results">
+  <div id="status" class="status">Commence ta recherche ci-dessus.</div>
+  <div id="results"></div>
+</main>
+
+<footer>Les résultats sont basés sur l’organisation actuelle du Drive du projet.</footer>
+
+<script>
+const docs=[
+{name:"Communication",cat:"Pôle",keys:"communication chaima chaïma saniya yousra pole com",url:"https://drive.google.com/drive/folders/1daQhXZFouQ1s2isIEKlku4oQL5Jtt3_I?usp=share_link"},
+{name:"Coordination",cat:"Pôle",keys:"coordination maelys maëlys alia pole coord",url:"https://drive.google.com/drive/folders/1gw5s9FqQshhfy_eqYcOqWR0ih1zAXLvj?usp=sharing"},
+{name:"Logistique",cat:"Pôle",keys:"logistique clara salma raihana pole logi",url:"https://drive.google.com/drive/folders/1WnMLp4VHgXO6MbSWQkUeRqAJAO5ExKCl?usp=share_link"},
+{name:"Trésorerie",cat:"Pôle",keys:"tresorerie trésorerie finance lola kenza pole",url:"https://drive.google.com/drive/folders/1iuCGMEGOnZnKWB20Ww9xwZQ0xIoNPUPh?usp=share_link"},
+{name:"01 — Présentations",cat:"Suivi & documents de référence",keys:"presentations présentations presentation",url:"https://drive.google.com/drive/folders/1Q-H8Md5LA_AR5ZCIvhJvVz-x55btAchx?usp=share_link"},
+{name:"03 — CR réunions",cat:"Suivi & documents de référence",keys:"cr reunions comptes rendus réunion reunion compte rendu",url:"https://drive.google.com/drive/folders/1wfoZBMIoPJz8uKRRE3pZonjrIFwa2u3h?usp=share_link"},
+{name:"04 — Doc référentiels",cat:"Suivi & documents de référence",keys:"doc referentiels référentiels referentiel",url:"https://drive.google.com/drive/folders/1a0OCC7ljiQ4Wan4qFViLzptrnFGPsrrh?usp=share_link"},
+{name:"Consignes",cat:"Suivi & documents de référence",keys:"consignes",url:"https://drive.google.com/drive/folders/1Z-mlmSl4RXowVxJ4tQiGcqqRWYL8NqhI?usp=share_link"},
+{name:"02 — Partenaires",cat:"Partenaires & actions",keys:"partenaires partenaire",url:"https://drive.google.com/drive/folders/17esEfGn74QW9_Gxohvj5krDIUdzfyJQT?usp=share_link"},
+{name:"05 — Actions en France",cat:"Partenaires & actions",keys:"actions france action france",url:"https://drive.google.com/drive/folders/1zWbfVkqB-QfaqCN8-9faYn3hKYckoB_d?usp=sharing"},
+{name:"07 — Action Bangkok",cat:"Partenaires & actions",keys:"action bangkok bangkok thailande thailand",url:"https://drive.google.com/drive/folders/1RQzWawUAvjdhYAGfq6B-SZ56x32nEHee?usp=share_link"},
+{name:"06 — Passage de relais",cat:"Passation & archives",keys:"passage relais passation transmission transmission relais",url:"https://drive.google.com/drive/folders/13190v-jdnNC_ctv0Cv-DHrOhEoRQpNhf?usp=sharing"},
+{name:"Archives",cat:"Passation & archives",keys:"archives archive ancien anciens",url:"https://drive.google.com/drive/folders/10YLPAc_R30PLt5r3bosoM4hLovv4T2LN?usp=share_link"}
+];
+function norm(s){return s.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"")}
+function search(){
+ const q=norm(document.getElementById("q").value.trim());
+ const box=document.getElementById("results"),status=document.getElementById("status");
+ if(!q){box.innerHTML="";status.textContent="Commence ta recherche ci-dessus.";return}
+ const words=q.split(/\s+/).filter(Boolean);
+ const scored=docs.map(d=>{
+   const hay=norm(d.name+" "+d.cat+" "+d.keys);
+   let score=0;
+   words.forEach(w=>{if(hay.includes(w))score+=hay.includes(" "+w+" ")?3:1});
+   return {...d,score};
+ }).filter(d=>d.score>0).sort((a,b)=>b.score-a.score);
+ status.textContent=scored.length?`${scored.length} dossier${scored.length>1?"s":""} trouvé${scored.length>1?"s":""}`:"Aucun dossier trouvé";
+ box.innerHTML=scored.length?scored.map(d=>`<div class="result"><div><h3>📁 ${d.name}</h3><p>${d.cat}</p></div><a class="open" href="${d.url}" target="_blank" rel="noopener">Ouvrir le dossier →</a></div>`).join(""):`<div class="empty">Essaie avec un autre mot-clé : <b>Bangkok</b>, <b>Alia</b>, <b>communication</b>, <b>partenaires</b>, <b>réunions</b>…</div>`;
+}
+document.getElementById("q").addEventListener("keydown",e=>{if(e.key==="Enter")search()});
+</script>
+</body>
+</html>
